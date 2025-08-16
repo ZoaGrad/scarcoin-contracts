@@ -1,0 +1,43 @@
+name: Foundry CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+
+      - name: Run Forge coverage
+        run: |
+          forge coverage --report lcov
+
+      - name: Run slither static analysis
+        uses: crytic/slither-action@v0.3.0
+        id: slither
+        with:
+          node-version: 18
