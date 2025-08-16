@@ -1,0 +1,14 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Custom mappings
+*.js text
+*.html text
+*.css text
+*.py text
+*.sh text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
