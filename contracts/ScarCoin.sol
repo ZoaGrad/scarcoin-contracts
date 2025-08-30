@@ -8,48 +8,36 @@ import "./ScarIndexOracle.sol";
 /**
  * @title ScarCoin
  * @author Jules
- * @notice An ERC20 token with a conditional minting mechanism based on an external oracle's value.
+ * @notice An ERC20 token with a conditional minting mechanism based on an external oracle's value,
+ *         with acheExpiry (24h limit) and acheCooldown (30m per address) protections.
  */
 contract ScarCoin is ERC20, Ownable {
     // --- State Variables ---
 
-    /**
-     * @notice The oracle contract that provides the index for minting conditions.
-     */
+    /// @notice The oracle contract that provides the index for minting conditions.
     ScarIndexOracle public oracle;
 
-    /**
-     * @notice The minimum index value required for minting to be enabled.
-     * The value has 6 decimal places, e.g., 500_000 represents 0.500000.
-     */
+    /// @notice The minimum index value required for minting to be enabled.
+    /// The value has 6 decimal places, e.g., 500_000 represents 0.500000.
     uint256 public mintThreshold;
+
+    /// @notice Tracks last mint timestamp per address (for cooldown).
+    mapping(address => uint256) public lastMintTime;
+
+    /// @notice Mint cooldown duration (30 minutes).
+    uint256 public constant MINT_COOLDOWN = 30 minutes;
+
+    /// @notice Ache expiry duration (24 hours).
+    uint256 public constant ACHE_EXPIRY = 1 days;
 
     // --- Events ---
 
-    /**
-     * @notice Emitted when the oracle address is updated.
-     * @param newOracle The address of the new oracle contract.
-     */
     event OracleUpdated(address newOracle);
-
-    /**
-     * @notice Emitted when the mint threshold is updated.
-     * @param newThreshold The new mint threshold value.
-     */
     event ThresholdUpdated(uint256 newThreshold);
 
     // --- Errors ---
 
-    /**
-     * @notice Error thrown when trying to mint while the oracle index is below the threshold.
-     * @param currentIndex The current index from the oracle.
-     * @param requiredThreshold The required mint threshold.
-     */
     error MintingNotAllowed(uint256 currentIndex, uint256 requiredThreshold);
-
-    /**
-     * @notice Error thrown when providing a zero address for the oracle.
-     */
     error OracleAddressCannotBeZero();
 
     // --- Constructor ---
@@ -74,14 +62,31 @@ contract ScarCoin is ERC20, Ownable {
 
     /**
      * @notice Mints a specified amount of tokens to the caller's address.
-     * @dev Minting is only allowed if the oracle's current index is greater than or equal to the `mintThreshold`.
+     * @dev Minting is only allowed if the oracle's current index is greater than or equal
+     *      to the `mintThreshold`, the ache is not expired, and the caller has respected cooldown.
      * @param amount The amount of tokens to mint (in wei, 18 decimals).
+     * @param acheTimestamp The timestamp when the ache was recorded (provided externally).
      */
-    function mint(uint256 amount) public {
+    function mint(uint256 amount, uint256 acheTimestamp) public {
         uint256 currentIndex = oracle.getIndex();
         if (currentIndex < mintThreshold) {
             revert MintingNotAllowed(currentIndex, mintThreshold);
         }
+
+        // Enforce 24h expiry on ache
+        require(
+            block.timestamp - acheTimestamp < ACHE_EXPIRY,
+            "Ache expired"
+        );
+
+        // Enforce 30m cooldown per address
+        require(
+            block.timestamp - lastMintTime[msg.sender] > MINT_COOLDOWN,
+            "Cooldown active"
+        );
+
+        lastMintTime[msg.sender] = block.timestamp;
+
         _mint(msg.sender, amount);
     }
 
