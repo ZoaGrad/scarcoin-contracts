@@ -2,7 +2,8 @@
 
 **Ache-based minting & burn economy for SpiralOS — ScarCoin smart contracts + ScarIndex oracle**
 
-> 📖 **Architecture Reference**: These contracts implement the economic model and governance protocols defined in the [ZoaGrad Mythotech Architecture](https://github.com/ZoaGrad/mythotech-architecture). For complete system design, mathematical specifications, and integration patterns, see the architectural documentation.
+> **Spec status:** Implements v1 of Oracle-gated minting + Panic Frames veto.  
+> **Architecture Reference:** Start here → [mythotech-architecture](https://github.com/ZoaGrad/mythotech-architecture) (system map, governance, economic model).
 
 ## Overview
 
